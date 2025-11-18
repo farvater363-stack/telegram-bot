@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Internal Announcements – Admin Mini App</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Internal Announcements</p>
+        <h1>Referral Control Center</h1>
+        <p class="subtitle">
+          Track momentum, celebrate top contributors, and update rewards in seconds.
+        </p>
+      </div>
+      <button class="refresh-btn" id="refresh-btn">⟳ Refresh</button>
+    </header>
+
+    <nav class="tab-bar">
+      <button class="tab-button is-active" data-tab-target="referrals">Referrals</button>
+      <button class="tab-button" data-tab-target="automation">Automation</button>
+      <button class="tab-button" data-tab-target="insights">Insights</button>
+    </nav>
+
+    <section class="tab-section is-active" data-tab="referrals">
+      <div class="panel focus-panel">
+        <div class="panel-head">
+          <h2>Referrals & Rewards</h2>
+          <p>Drive updates from one command center.</p>
+        </div>
+        <div class="action-grid">
+          <button class="ghost" data-modal-target="add-referrer">New referrer</button>
+          <button class="primary ghost" data-modal-target="add-referrals">Add drivers</button>
+          <button class="ghost" data-modal-target="remove-referrals">Clean mistakes</button>
+          <button class="ghost" data-modal-target="cpm-editor">Adjust CPM</button>
+          <button class="primary ghost" data-modal-target="announce">Broadcast spotlight</button>
+          <button class="ghost" id="export-btn">Export Excel</button>
+        </div>
+      </div>
+      <section class="panel">
+        <div class="panel-head">
+          <h3>All referrers</h3>
+          <p>Tap a card to review adoption in real time.</p>
+        </div>
+        <div id="referrer-list" class="referrer-list"></div>
+      </section>
+    </section>
+
+    <section class="tab-section" data-tab="automation">
+      <section class="panel">
+        <div class="panel-head panel-head-flex">
+          <div>
+            <h2>Reminders</h2>
+            <p>Broadcast templates sent across every chat.</p>
+          </div>
+          <button class="primary ghost" data-modal-target="reminder">Create reminder</button>
+        </div>
+        <div id="reminder-list" class="reminder-list"></div>
+      </section>
+      <section class="panel" id="access-panel" hidden>
+        <div class="panel-head">
+          <h2>Access control</h2>
+          <p>Primary admin controls for admins and approved chats.</p>
+        </div>
+        <div class="access-grid">
+          <div class="access-card">
+            <h3>Admins</h3>
+            <p class="hint">Base admins cannot be removed.</p>
+            <ul id="base-admin-list" class="simple-list"></ul>
+            <ul id="extra-admin-list" class="simple-list"></ul>
+            <form id="admin-form" class="stack-form">
+              <label>
+                Telegram @username
+                <input type="text" id="admin-username" placeholder="@username" required />
+              </label>
+              <button type="submit" class="primary">Add admin</button>
+            </form>
+          </div>
+          <div class="access-card">
+            <h3>Approved chats</h3>
+            <p class="hint">Chats that can manage the bot from group context.</p>
+            <ul id="chat-list" class="simple-list"></ul>
+            <form id="chat-form" class="stack-form">
+              <label>
+                Chat ID
+                <input type="number" id="chat-id" placeholder="-100..." required />
+              </label>
+              <label>
+                Label
+                <input type="text" id="chat-title" placeholder="Finance group" />
+              </label>
+              <button type="submit" class="secondary">Add chat</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-section" data-tab="insights">
+      <section class="summary-cards" id="summary-cards">
+        <!-- cards -->
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Leaderboard</h2>
+          <p>Celebrate momentum at a glance.</p>
+        </div>
+        <div id="leaderboard" class="leaderboard"></div>
+      </section>
+    </section>
+
+    <template id="referrer-card-template">
+      <div class="ref-card">
+        <div class="ref-card-header">
+          <div>
+            <h3></h3>
+            <p class="meta"></p>
+          </div>
+          <span class="badge"></span>
+        </div>
+        <ul class="referral-list"></ul>
+      </div>
+    </template>
+
+    <div class="modal-layer" id="modal-layer">
+      <div class="modal" data-modal="add-referrer">
+        <header>
+          <h3>New referrer</h3>
+          <button type="button" class="close-modal" aria-label="Close">×</button>
+        </header>
+        <form id="ref-form" class="modal-form">
+          <label>
+            Name
+            <input type="text" id="ref-name" required />
+          </label>
+          <label>
+            Base CPM
+            <input type="number" step="0.01" id="ref-cpm" required />
+          </label>
+          <button type="submit" class="primary">Create referrer</button>
+        </form>
+      </div>
+      <div class="modal" data-modal="add-referrals">
+        <header>
+          <h3>Add drivers</h3>
+          <button type="button" class="close-modal" aria-label="Close">×</button>
+        </header>
+        <form id="add-form" class="modal-form">
+          <label>
+            Referrer
+            <select id="add-referrer" required></select>
+          </label>
+          <label>
+            Driver names
+            <textarea id="add-names" rows="4" placeholder="Jane Cooper&#10;Diego Scott" required></textarea>
+          </label>
+          <button type="submit" class="primary">Save drivers</button>
+        </form>
+      </div>
+      <div class="modal" data-modal="remove-referrals">
+        <header>
+          <h3>Clean referrals</h3>
+          <button type="button" class="close-modal" aria-label="Close">×</button>
+        </header>
+        <form id="remove-form" class="modal-form">
+          <label>
+            Referrer
+            <select id="remove-referrer" required></select>
+          </label>
+          <label>
+            Drivers to remove
+            <select id="remove-select" multiple size="6" required></select>
+            <small class="hint">Select one or more drivers.</small>
+          </label>
+          <label>
+            Removal date (optional)
+            <input type="date" id="remove-date" />
+          </label>
+          <label>
+            Reason (optional)
+            <input type="text" id="remove-reason" placeholder="Duplicate entry, typo, etc." />
+          </label>
+          <button type="submit" class="danger">Remove selected</button>
+        </form>
+      </div>
+      <div class="modal" data-modal="cpm-editor">
+        <header>
+          <h3>Adjust base CPM</h3>
+          <button type="button" class="close-modal" aria-label="Close">×</button>
+        </header>
+        <form id="cpm-form" class="modal-form">
+          <label>
+            Referrer
+            <select id="cpm-referrer" required></select>
+          </label>
+          <label>
+            Base CPM
+            <input type="number" step="0.01" id="cpm-value" required />
+          </label>
+          <button type="submit" class="secondary">Update CPM</button>
+        </form>
+      </div>
+      <div class="modal" data-modal="announce">
+        <header>
+          <h3>Broadcast spotlight</h3>
+          <button type="button" class="close-modal" aria-label="Close">×</button>
+        </header>
+        <form id="announce-form" class="modal-form">
+          <label>
+            Referrer
+            <select id="announce-referrer" required></select>
+          </label>
+          <button type="submit" class="primary">Send announcement</button>
+        </form>
+      </div>
+      <div class="modal" data-modal="reminder">
+        <header>
+          <h3>Create reminder</h3>
+          <button type="button" class="close-modal" aria-label="Close">×</button>
+        </header>
+        <form id="reminder-form" class="modal-form">
+          <label>
+            Reminder text
+            <div class="format-bar">
+              <button type="button" id="rem-bold" title="Bold">B</button>
+              <button type="button" id="rem-italic" title="Italic"><span class="italic">I</span></button>
+              <button type="button" id="rem-photo-btn" title="Attach photo">Photo</button>
+              <input type="file" id="rem-photo" accept="image/*" hidden />
+              <button type="button" id="rem-photo-remove" class="ghost" hidden>Remove photo</button>
+            </div>
+            <small class="hint" id="rem-photo-status">No photo selected.</small>
+            <textarea id="rem-text" rows="2" required></textarea>
+          </label>
+          <div class="segmented">
+            <label><input type="radio" name="rem-mode" value="once" checked /> One time</label>
+            <label><input type="radio" name="rem-mode" value="schedule" /> Schedule</label>
+          </div>
+          <div data-rem-mode="once">
+            <label>
+              Send on
+              <input type="datetime-local" id="rem-once" />
+            </label>
+            <label class="inline">
+              <input type="checkbox" id="rem-send-now" /> Send right now
+            </label>
+          </div>
+          <div data-rem-mode="schedule" style="display:none;">
+            <label>Select day(s)</label>
+            <div class="weekday-grid compact" id="rem-days">
+              <label><input type="checkbox" value="0" /> Mon</label>
+              <label><input type="checkbox" value="1" /> Tue</label>
+              <label><input type="checkbox" value="2" /> Wed</label>
+              <label><input type="checkbox" value="3" /> Thu</label>
+              <label><input type="checkbox" value="4" /> Fri</label>
+              <label><input type="checkbox" value="5" /> Sat</label>
+              <label><input type="checkbox" value="6" /> Sun</label>
+            </div>
+            <label>
+              Time of day
+              <input type="time" id="rem-schedule-time" />
+            </label>
+          </div>
+          <div class="schedule-actions">
+            <button type="button" id="reminder-preview" class="ghost">Preview in this chat</button>
+            <button type="submit" class="primary">Create reminder</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="/static/app.js" type="module"></script>
+  </body>
+</html>
