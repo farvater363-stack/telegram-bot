@@ -1,0 +1,14 @@
+[Unit]
+Description=Telegram Internal Announcements Bot
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/telegram-bot/Telegram Bot
+EnvironmentFile=/opt/telegram-bot/Telegram Bot/.env
+ExecStart=/opt/telegram-bot/Telegram Bot/.venv/bin/python bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
