@@ -79,6 +79,19 @@ def _parse_timezone(value: str | None) -> ZoneInfo:
     except Exception:  # pragma: no cover - direct user input
         return ZoneInfo("UTC")
 
+def _default_webapp_host() -> str:
+    """Prefer explicit WEBAPP_HOST, fallback to generic HOST (Railway) or localhost."""
+    return os.getenv("WEBAPP_HOST") or os.getenv("HOST") or "0.0.0.0"
+
+def _default_webapp_port() -> int:
+    """Prefer WEBAPP_PORT, fallback to provider PORT (Railway/Render/etc.)."""
+    raw = os.getenv("WEBAPP_PORT") or os.getenv("PORT") or "8080"
+    try:
+        return int(raw)
+    except ValueError:
+        return 8080
+
+
 
 @dataclass(slots=True)
 class Settings:
@@ -112,8 +125,8 @@ class Settings:
     referral_cash_bonus: int = field(
         default_factory=lambda: int(os.getenv("REFERRAL_CASH_BONUS", "500"))
     )
-    webapp_host: str = field(default_factory=lambda: os.getenv("WEBAPP_HOST", "127.0.0.1"))
-    webapp_port: int = field(default_factory=lambda: int(os.getenv("WEBAPP_PORT", "8080")))
+    webapp_host: str = field(default_factory=_default_webapp_host)
+    webapp_port: int = field(default_factory=_default_webapp_port)
     webapp_url: str = field(default_factory=lambda: os.getenv("WEBAPP_URL", "http://127.0.0.1:8080/"))
     webapp_debug_secret: str = field(default_factory=lambda: os.getenv("WEBAPP_DEBUG_SECRET", ""))
 
@@ -139,3 +152,5 @@ def is_admin(user_id: int | None) -> bool:
 
 def is_primary_admin(user_id: int | None) -> bool:
     return bool(user_id) and settings.primary_admin_id == user_id
+
+
