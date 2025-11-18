@@ -12,10 +12,7 @@ router = Router(name="general")
 
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
-    await message.answer(
-        "Hi! I'm the Internal Announcements bot.\n"
-        "Admins can use /reminder, /reminders, /referrals, /admins, /addadmin, and /removeadmin."
-    )
+    await message.answer("Bot is active ✅")
 
 
 @router.message(F.text)
