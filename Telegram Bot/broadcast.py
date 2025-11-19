@@ -20,7 +20,7 @@ def _sanitize_title(title: str | None) -> str:
     return title.replace("*", "").strip().upper()
 
 
-async def _eligible_chats(bot: Bot):
+async def _eligible_chats(bot: Bot, ignore_inactive: bool):
     chats = await db.get_active_chats()
     extra_admin_ids = set(await db.get_additional_admin_ids())
     admin_ids = set(settings.admin_ids) | extra_admin_ids
@@ -31,7 +31,7 @@ async def _eligible_chats(bot: Bot):
             continue
         if chat["type"] == "private" and chat_id in admin_ids:
             continue
-        if chat["type"] in ("group", "supergroup"):
+        if ignore_inactive and chat["type"] in ("group", "supergroup"):
             title = chat.get("title")
             sanitized = _sanitize_title(title)
             if "INACTIVE" in sanitized:
@@ -46,12 +46,12 @@ async def _eligible_chats(bot: Bot):
         yield chat
 
 
-async def broadcast_message(text: str, bot: Bot, photo: str | None = None) -> None:
+async def broadcast_message(text: str, bot: Bot, photo: str | None = None, ignore_inactive: bool = True) -> None:
     """
     Send ``text`` to every active chat.
     Automatically suspends inactive chats and logs errors.
     """
-    async for chat in _eligible_chats(bot):
+    async for chat in _eligible_chats(bot, ignore_inactive):
         chat_id = chat["chat_id"]
         for attempt in range(1, settings.broadcast_retry_count + 1):
             try:

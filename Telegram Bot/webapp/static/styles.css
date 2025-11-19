@@ -467,6 +467,18 @@ label.inline {
   color: var(--tg-theme-button-color, #1d4ed8);
 }
 
+.badge.warn {
+  background: rgba(220, 38, 38, 0.25);
+  color: #f87171;
+}
+
+.reminder-flags {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .referral-list {
   list-style: none;
   padding: 0;

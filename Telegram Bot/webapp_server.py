@@ -83,6 +83,16 @@ def _parse_date_only(value: str | None) -> str | None:
     return dt.isoformat()
 
 
+def _bool_from_payload(value: Any, default: bool = True) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
 def _is_primary_request(request: web.Request) -> bool:
     user = request.get("tg_user") or {}
     return bool(user) and is_primary_admin(user.get("id"))
@@ -321,8 +331,13 @@ async def handle_remove_referrals(request: web.Request) -> web.Response:
 async def handle_send_announcement(request: web.Request) -> web.Response:
     referrer_id = int(request.match_info["referrer_id"])
     bot: Bot = request.app["bot"]
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    ignore_inactive = _bool_from_payload(payload.get("ignore_inactive"), True)
     announcement = await build_referral_announcement(referrer_id)
-    await broadcast_message(announcement, bot)
+    await broadcast_message(announcement, bot, ignore_inactive=ignore_inactive)
     return web.json_response({"ok": True, "message": "Announcement sent"})
 
 
@@ -411,10 +426,11 @@ async def handle_create_reminder(request: web.Request) -> web.Response:
         return web.json_response({"ok": False, "error": "Invalid reminder payload"}, status=400)
     user_id = request["tg_user"].get("id") or 0
     media_path = _resolve_media_token(data.get("media_path"))
+    ignore_inactive = _bool_from_payload(data.get("ignore_inactive"), True)
     if mode == "once":
         if data.get("send_now"):
             bot: Bot = request.app["bot"]
-            await broadcast_message(text, bot, photo=media_path)
+            await broadcast_message(text, bot, photo=media_path, ignore_inactive=ignore_inactive)
             return web.json_response(await _build_reminders_payload())
         run_at = _parse_run_at(data.get("run_at"))
         if not run_at:
@@ -429,6 +445,7 @@ async def handle_create_reminder(request: web.Request) -> web.Response:
             every_n_weeks=1,
             created_by=user_id,
             media_path=media_path,
+            ignore_inactive=ignore_inactive,
         )
     else:
         raw_days = data.get("days") or []
@@ -453,6 +470,7 @@ async def handle_create_reminder(request: web.Request) -> web.Response:
             every_n_weeks=1,
             created_by=user_id,
             media_path=media_path,
+            ignore_inactive=ignore_inactive,
         )
     reminder = await db.get_reminder(reminder_id)
     await schedule_reminder(reminder)

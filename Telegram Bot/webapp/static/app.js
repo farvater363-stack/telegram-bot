@@ -93,6 +93,7 @@ const cpmReferrerSelect = document.getElementById("cpm-referrer");
 const cpmValueInput = document.getElementById("cpm-value");
 const announceForm = document.getElementById("announce-form");
 const announceReferrerSelect = document.getElementById("announce-referrer");
+const announceIgnoreInactiveCheckbox = document.getElementById("announce-ignore-inactive");
 const exportBtn = document.getElementById("export-btn");
 const reminderForm = document.getElementById("reminder-form");
 const reminderModeRadios = document.querySelectorAll("input[name='rem-mode']");
@@ -109,6 +110,7 @@ const reminderPhotoBtn = document.getElementById("rem-photo-btn");
 const reminderPhotoInput = document.getElementById("rem-photo");
 const reminderPhotoRemoveBtn = document.getElementById("rem-photo-remove");
 const reminderPhotoStatus = document.getElementById("rem-photo-status");
+const reminderIgnoreInactiveCheckbox = document.getElementById("rem-ignore-inactive");
 const refreshBtn = document.getElementById("refresh-btn");
 const createReferrerForm = document.getElementById("ref-form");
 const refNameInput = document.getElementById("ref-name");
@@ -334,10 +336,13 @@ function renderReminders() {
   state.reminders.forEach((rem) => {
     const row = document.createElement("div");
     row.className = "reminder-item";
+    const mediaHint = rem.has_media ? " 📎" : "";
+    const reachBadge = rem.ignore_inactive === false ? '<span class="badge warn">Includes INACTIVE chats</span>' : "";
     row.innerHTML = `
       <div class="reminder-meta">
         <h4>${rem.text}</h4>
-        <p>${rem.schedule}${rem.has_media ? " · 📷" : ""}</p>
+        <p>${rem.schedule}${mediaHint}</p>
+        ${reachBadge ? `<div class="reminder-flags">${reachBadge}</div>` : ""}
       </div>
       <div class="reminder-actions">
         <button data-action="toggle" data-id="${rem.id}" data-active="${rem.active}">
@@ -493,9 +498,14 @@ announceForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const referrerId = announceReferrerSelect.value;
   const confirmed = await confirmAction("Broadcast this announcement to every chat?");
+  const ignoreInactive = announceIgnoreInactiveCheckbox ? announceIgnoreInactiveCheckbox.checked : true;
   if (!confirmed) return;
   try {
-    await request(`/referrers/${referrerId}/announce`, { method: "POST" });
+    await request(`/referrers/${referrerId}/announce`, {
+      method: "POST",
+      body: JSON.stringify({ ignore_inactive: ignoreInactive }),
+    });
+    if (announceIgnoreInactiveCheckbox) announceIgnoreInactiveCheckbox.checked = true;
     closeModal();
     tg.showPopup({ title: "Sent", message: "Announcement broadcast." });
   } catch (err) {
@@ -523,6 +533,7 @@ if (reminderPreviewBtn) {
     if (!text) return tg.showAlert("Provide reminder text first.");
     const mode = currentReminderMode();
     const payload = { text, mode };
+    payload.ignore_inactive = reminderIgnoreInactiveCheckbox ? reminderIgnoreInactiveCheckbox.checked : true;
     if (reminderMediaPath) {
       payload.media_path = reminderMediaPath;
     }
@@ -559,6 +570,7 @@ reminderForm.addEventListener("submit", async (event) => {
     reminderScheduleTimeInput.value = "";
     reminderSendNowCheckbox.checked = false;
     reminderScheduleDayInputs.forEach((input) => (input.checked = false));
+    if (reminderIgnoreInactiveCheckbox) reminderIgnoreInactiveCheckbox.checked = true;
     reminderMediaPath = null;
     if (reminderPhotoInput) reminderPhotoInput.value = "";
     if (reminderPhotoStatus) reminderPhotoStatus.textContent = "No photo selected.";
@@ -691,6 +703,8 @@ function buildReminderPayload() {
     return null;
   }
   const payload = { text, mode, media_path: reminderMediaPath };
+  const ignoreInactive = reminderIgnoreInactiveCheckbox ? reminderIgnoreInactiveCheckbox.checked : true;
+  payload.ignore_inactive = ignoreInactive;
   if (mode === "once") {
     if (reminderSendNowCheckbox.checked) {
       payload.send_now = true;

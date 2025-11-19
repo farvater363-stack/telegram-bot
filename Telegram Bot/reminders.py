@@ -192,6 +192,7 @@ async def _finalize_reminder(
         every_n_weeks=2 if freq == "biweekly" else 1,
         created_by=user_id,
         media_path=media_path,
+        ignore_inactive=True,
     )
     reminder = await db.get_reminder(reminder_id)
     if reminder:
@@ -219,7 +220,8 @@ async def _send_reminders_list(message: Message | CallbackQuery) -> None:
     for reminder in reminders:
         schedule = format_reminder_schedule(reminder)
         status = "Active" if reminder["active"] else "Disabled"
-        lines.append(f"{reminder['id']}) {schedule} – \"{reminder['text']}\" ({status})")
+        suffix = "" if reminder.get('ignore_inactive', 1) else " [includes INACTIVE chats]"
+        lines.append(f"{reminder['id']}) {schedule} - \"{reminder['text']}\" ({status}){suffix}")
     text = "\n".join(lines)
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -278,6 +280,7 @@ def serialize_reminder(reminder: dict) -> dict:
         "weekdays": reminder.get("weekdays"),
         "run_at": reminder.get("run_at"),
         "has_media": bool(reminder.get("media_path")),
+        "ignore_inactive": bool(reminder.get("ignore_inactive", 1)),
     }
 
 
@@ -381,7 +384,7 @@ async def _fire_reminder(reminder_id: int) -> None:
     if not reminder or not reminder["active"]:
         return
     photo = reminder.get("media_path")
-    await broadcast_message(reminder["text"], _bot, photo=photo)
+    await broadcast_message(reminder["text"], _bot, photo=photo, ignore_inactive=bool(reminder.get("ignore_inactive", 1)))
     if reminder["type"] == "once":
         await db.set_reminder_active(reminder_id, False)
         await unschedule_reminder(reminder_id)

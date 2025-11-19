@@ -62,7 +62,8 @@ class Database:
                 active INTEGER NOT NULL DEFAULT 1,
                 created_by INTEGER,
                 created_at TEXT NOT NULL,
-                media_path TEXT
+                media_path TEXT,
+                ignore_inactive INTEGER NOT NULL DEFAULT 1
             );
 
             CREATE TABLE IF NOT EXISTS referrers (
@@ -214,14 +215,15 @@ class Database:
         every_n_weeks: int,
         created_by: int,
         media_path: Optional[str] = None,
+        ignore_inactive: bool = True,
     ) -> int:
         assert self.conn is not None
         async with self._lock:
             cursor = await self.conn.execute(
                 """
                 INSERT INTO reminders
-                (text, type, run_at, time_of_day, weekday, weekdays, every_n_weeks, active, created_by, created_at, media_path)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+                (text, type, run_at, time_of_day, weekday, weekdays, every_n_weeks, active, created_by, created_at, media_path, ignore_inactive)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
                 """,
                 (
                     text,
@@ -234,6 +236,7 @@ class Database:
                     created_by,
                     _utcnow(),
                     media_path,
+                    1 if ignore_inactive else 0,
                 ),
             )
             await self.conn.commit()
@@ -543,6 +546,7 @@ class Database:
         await self._add_column("referrals", "removed_by", "INTEGER")
         await self._add_column("referrals", "removed_reason", "TEXT")
         await self._add_column("reminders", "media_path", "TEXT")
+        await self._add_column("reminders", "ignore_inactive", "INTEGER NOT NULL DEFAULT 1")
 
     async def _add_column(self, table: str, column: str, definition: str) -> None:
         assert self.conn is not None

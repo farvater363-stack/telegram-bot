@@ -213,6 +213,11 @@
             Referrer
             <select id="announce-referrer" required></select>
           </label>
+          <label class="inline">
+            <input type="checkbox" id="announce-ignore-inactive" checked />
+            Skip chats tagged <strong>INACTIVE</strong>
+          </label>
+          <small class="hint">Uncheck to reach inactive groups.</small>
           <button type="submit" class="primary">Send announcement</button>
         </form>
       </div>
@@ -263,6 +268,11 @@
               <input type="time" id="rem-schedule-time" />
             </label>
           </div>
+          <label class="inline">
+            <input type="checkbox" id="rem-ignore-inactive" checked />
+            Skip chats tagged <strong>INACTIVE</strong>
+          </label>
+          <small class="hint">Uncheck to include inactive/archived groups.</small>
           <div class="schedule-actions">
             <button type="button" id="reminder-preview" class="ghost">Preview in this chat</button>
             <button type="submit" class="primary">Create reminder</button>
