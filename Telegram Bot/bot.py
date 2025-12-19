@@ -27,7 +27,12 @@ from reminders import restore_reminders, router as reminders_router, setup_sched
 from webapp_server import WebAppServer
 
 
+
 class ChatTrackingMiddleware(BaseMiddleware):
+    def __init__(self) -> None:
+        self._cache: Dict[str, float] = {}
+        self._ttl = 3600  # 1 hour cache
+
     async def __call__(
         self,
         handler: Callable[[TelegramObject, Dict[str, Any]], Any],
@@ -42,16 +47,27 @@ class ChatTrackingMiddleware(BaseMiddleware):
         elif isinstance(event, CallbackQuery) and event.message:
             chat = event.message.chat
             from_user = event.from_user
+            
+        now = asyncio.get_running_loop().time()
+        
         if chat:
-            title = getattr(chat, "title", None)
-            await db.upsert_chat(chat.id, chat.type, title)
+            key = f"chat:{chat.id}"
+            if now - self._cache.get(key, 0) > self._ttl:
+                title = getattr(chat, "title", None)
+                await db.upsert_chat(chat.id, chat.type, title)
+                self._cache[key] = now
+                
         if from_user:
-            await db.upsert_user(
-                from_user.id,
-                from_user.username,
-                from_user.first_name,
-                from_user.last_name,
-            )
+            key = f"user:{from_user.id}"
+            if now - self._cache.get(key, 0) > self._ttl:
+                await db.upsert_user(
+                    from_user.id,
+                    from_user.username,
+                    from_user.first_name,
+                    from_user.last_name,
+                )
+                self._cache[key] = now
+                
         return await handler(event, data)
 
 

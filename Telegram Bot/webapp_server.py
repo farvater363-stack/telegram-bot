@@ -381,7 +381,11 @@ async def handle_upload_reminder_media(request: web.Request) -> web.Response:
     if not field or field.name != "file":
         return web.json_response({"ok": False, "error": "Invalid field"}, status=400)
     filename = Path(field.filename or "photo.jpg")
-    suffix = filename.suffix or ".jpg"
+    suffix = (filename.suffix or ".jpg").lower()
+    allowed_suffixes = {".jpg", ".jpeg", ".png", ".webp", ".mp4"}
+    if suffix not in allowed_suffixes:
+        return web.json_response({"ok": False, "error": "Invalid file type"}, status=400)
+    
     target = (REMINDER_UPLOAD_DIR / f"{uuid4().hex}{suffix}").resolve()
     with target.open("wb") as f:
         while True:

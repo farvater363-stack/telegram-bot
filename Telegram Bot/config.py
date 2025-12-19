@@ -69,7 +69,7 @@ def _parse_announcement_days(raw: str | None) -> List[int]:
         if key not in mapping:
             continue
         days.append(mapping[key])
-    return days or [0, 3]
+    return days or []
 
 
 def _parse_timezone(value: str | None) -> ZoneInfo:
@@ -96,7 +96,7 @@ def _default_webapp_port() -> int:
 @dataclass(slots=True)
 class Settings:
     bot_token: str = field(
-        default_factory=lambda: os.getenv("BOT_TOKEN", "8444822662:AAEXT0EW38kKT7UfFTnQ_XFpjKf95TuG3cA")
+        default_factory=lambda: os.getenv("BOT_TOKEN") or ""
     )
     admin_ids: List[int] = field(
         default_factory=lambda: _parse_admin_ids(os.getenv("ADMIN_IDS", "140802473"))

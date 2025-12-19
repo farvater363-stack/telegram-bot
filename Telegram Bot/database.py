@@ -550,13 +550,15 @@ class Database:
 
     async def _add_column(self, table: str, column: str, definition: str) -> None:
         assert self.conn is not None
-        try:
-            await self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition};")
-            await self.conn.commit()
-        except sqlite3.OperationalError as exc:  # type: ignore[attr-defined]
-            if "duplicate column name" in str(exc).lower():
-                return
-            raise
+        cursor = await self.conn.execute(f"PRAGMA table_info({table})")
+        columns = [row["name"] for row in await cursor.fetchall()]
+        await cursor.close()
+        
+        if column in columns:
+            return
+            
+        await self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition};")
+        await self.conn.commit()
 
 
 db = Database(settings.database_path)
