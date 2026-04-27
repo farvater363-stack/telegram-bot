@@ -46,6 +46,31 @@ async def _eligible_chats(bot: Bot, ignore_inactive: bool):
         yield chat
 
 
+async def _send_with_html_fallback(
+    bot: Bot, chat_id: int, text: str, photo: str | None
+) -> None:
+    """
+    Send a message using the bot default (HTML) parse mode, falling back to
+    plain text if Telegram rejects the payload as unparseable. Reminder text
+    is user-supplied and may contain raw ``<``, ``>`` or ``&`` characters that
+    would otherwise abort the entire broadcast.
+    """
+    try:
+        if photo:
+            await bot.send_photo(chat_id, photo=FSInputFile(photo), caption=text)
+        else:
+            await bot.send_message(chat_id, text)
+    except exceptions.TelegramBadRequest as exc:
+        if "can't parse entities" not in str(exc).lower():
+            raise
+        if photo:
+            await bot.send_photo(
+                chat_id, photo=FSInputFile(photo), caption=text, parse_mode=None
+            )
+        else:
+            await bot.send_message(chat_id, text, parse_mode=None)
+
+
 async def broadcast_message(text: str, bot: Bot, photo: str | None = None, ignore_inactive: bool = True) -> None:
     """
     Send ``text`` to every active chat.
@@ -55,10 +80,7 @@ async def broadcast_message(text: str, bot: Bot, photo: str | None = None, ignor
         chat_id = chat["chat_id"]
         for attempt in range(1, settings.broadcast_retry_count + 1):
             try:
-                if photo:
-                    await bot.send_photo(chat_id, photo=FSInputFile(photo), caption=text)
-                else:
-                    await bot.send_message(chat_id, text)
+                await _send_with_html_fallback(bot, chat_id, text, photo)
                 break
             except exceptions.TelegramForbiddenError:
                 logger.warning("Chat %s forbidden. Marking inactive.", chat_id)

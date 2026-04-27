@@ -1,286 +1,304 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Internal Announcements – Admin Mini App</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Spotlight</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600;7..72,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Internal Announcements</p>
-        <h1>Referral Control Center</h1>
-        <p class="subtitle">
-          Track momentum, celebrate top contributors, and update rewards in seconds.
-        </p>
-      </div>
-      <button class="refresh-btn" id="refresh-btn">⟳ Refresh</button>
-    </header>
-
-    <nav class="tab-bar">
-      <button class="tab-button is-active" data-tab-target="referrals">Referrals</button>
-      <button class="tab-button" data-tab-target="automation">Automation</button>
-      <button class="tab-button" data-tab-target="insights">Insights</button>
-    </nav>
-
-    <section class="tab-section is-active" data-tab="referrals">
-      <div class="panel focus-panel">
-        <div class="panel-head">
-          <h2>Referrals & Rewards</h2>
-          <p>Drive updates from one command center.</p>
+    <main class="page" id="page">
+      <header class="masthead">
+        <div class="masthead-text">
+          <p class="eyebrow" id="masthead-date">Today</p>
+          <h1 class="masthead-title">Spotlight</h1>
         </div>
-        <div class="action-grid">
-          <button class="ghost" data-modal-target="add-referrer">New referrer</button>
-          <button class="primary ghost" data-modal-target="add-referrals">Add drivers</button>
-          <button class="ghost" data-modal-target="remove-referrals">Clean mistakes</button>
-          <button class="ghost" data-modal-target="cpm-editor">Adjust CPM</button>
-          <button class="primary ghost" data-modal-target="announce">Broadcast spotlight</button>
-          <button class="ghost" id="export-btn">Export Excel</button>
-        </div>
-      </div>
-      <section class="panel">
-        <div class="panel-head">
-          <h3>All referrers</h3>
-          <p>Tap a card to review adoption in real time.</p>
-        </div>
-        <div id="referrer-list" class="referrer-list"></div>
-      </section>
-    </section>
+        <button type="button" class="icon-btn" id="settings-btn" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path
+              d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4.8a7.4 7.4 0 0 0-2.1-1.2l-.4-2.5h-3.9l-.4 2.5a7.4 7.4 0 0 0-2.1 1.2l-2.4-.8-2 3.4 2 1.6c-.1.4-.1.8-.1 1.2s0 .8.1 1.2l-2 1.6 2 3.4 2.4-.8a7.4 7.4 0 0 0 2.1 1.2l.4 2.5h3.9l.4-2.5a7.4 7.4 0 0 0 2.1-1.2l2.4.8 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </header>
 
-    <section class="tab-section" data-tab="automation">
-      <section class="panel">
-        <div class="panel-head panel-head-flex">
-          <div>
-            <h2>Reminders</h2>
-            <p>Broadcast templates sent across every chat.</p>
+      <!-- ============== COMPOSE ============== -->
+      <section class="compose" id="compose" data-mode="spotlight" aria-labelledby="compose-heading">
+        <div class="compose-head">
+          <h2 id="compose-heading" class="compose-title">Compose</h2>
+          <p class="compose-lede" id="compose-lede">Celebrate a driver. Or send a custom note.</p>
+        </div>
+
+        <fieldset class="segmented compose-mode" aria-label="What to send">
+          <label>
+            <input type="radio" name="compose-mode" value="spotlight" checked />
+            <span>Spotlight</span>
+          </label>
+          <label>
+            <input type="radio" name="compose-mode" value="custom" />
+            <span>Custom note</span>
+          </label>
+        </fieldset>
+
+        <div class="compose-body" data-mode="spotlight">
+          <label class="field">
+            <span class="field-label">Driver to celebrate</span>
+            <select id="compose-referrer" required></select>
+          </label>
+          <details class="compose-preview-wrap" id="compose-preview-wrap">
+            <summary>Show preview</summary>
+            <pre class="compose-preview" id="compose-preview"></pre>
+          </details>
+          <p class="form-empty" id="compose-spotlight-empty" hidden>
+            Add a referrer in the People section first.
+          </p>
+        </div>
+
+        <div class="compose-body" data-mode="custom" hidden>
+          <div class="format-bar">
+            <button type="button" class="chip" id="compose-bold" title="Bold"><strong>B</strong></button>
+            <button type="button" class="chip" id="compose-italic" title="Italic"><em>I</em></button>
+            <button type="button" class="chip" id="compose-photo-btn">Attach photo</button>
+            <input type="file" id="compose-photo" accept="image/*" hidden />
+            <button type="button" class="chip chip-ghost" id="compose-photo-remove" hidden>Remove photo</button>
           </div>
-          <button class="primary ghost" data-modal-target="reminder">Create reminder</button>
+          <span class="field-hint" id="compose-photo-status">No photo selected.</span>
+          <label class="field">
+            <span class="visually-hidden">Message</span>
+            <textarea
+              id="compose-text"
+              rows="3"
+              placeholder="Big morning, team — drivers in by 7am please."
+            ></textarea>
+          </label>
         </div>
-        <div id="reminder-list" class="reminder-list"></div>
+
+        <fieldset class="segmented compose-when" aria-label="When to send">
+          <label>
+            <input type="radio" name="compose-when" value="now" checked />
+            <span>Now</span>
+          </label>
+          <label data-when-option="once" hidden>
+            <input type="radio" name="compose-when" value="once" />
+            <span>At a time</span>
+          </label>
+          <label>
+            <input type="radio" name="compose-when" value="repeat" />
+            <span>Repeating</span>
+          </label>
+        </fieldset>
+
+        <div class="compose-when-detail" data-when="once" hidden>
+          <label class="field">
+            <span class="field-label">Send on</span>
+            <input type="datetime-local" id="compose-once" />
+          </label>
+        </div>
+
+        <div class="compose-when-detail" data-when="repeat" hidden>
+          <fieldset class="weekday-grid" id="compose-days" aria-label="Days of week">
+            <label><input type="checkbox" value="0" /><span>Mon</span></label>
+            <label><input type="checkbox" value="1" /><span>Tue</span></label>
+            <label><input type="checkbox" value="2" /><span>Wed</span></label>
+            <label><input type="checkbox" value="3" /><span>Thu</span></label>
+            <label><input type="checkbox" value="4" /><span>Fri</span></label>
+            <label><input type="checkbox" value="5" /><span>Sat</span></label>
+            <label><input type="checkbox" value="6" /><span>Sun</span></label>
+          </fieldset>
+          <label class="field field-inline">
+            <span class="field-label">Time</span>
+            <input type="time" id="compose-repeat-time" />
+          </label>
+        </div>
+
+        <label class="checkbox compose-flag">
+          <input type="checkbox" id="compose-skip-inactive" checked />
+          <span>Skip groups labelled <em>INACTIVE</em></span>
+        </label>
+
+        <div class="compose-foot">
+          <button type="button" class="btn btn-ghost btn-sm" id="compose-preview-self">
+            Preview to me
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" id="compose-send">
+            Send broadcast
+          </button>
+        </div>
       </section>
-      <section class="panel" id="access-panel" hidden>
-        <div class="panel-head">
-          <h2>Access control</h2>
-          <p>Primary admin controls for admins and approved chats.</p>
+
+      <!-- ============== ACTIVE & UPCOMING ============== -->
+      <section class="block" aria-labelledby="feed-heading">
+        <div class="block-head">
+          <h2 id="feed-heading">Active &amp; upcoming</h2>
+          <p class="block-lede">Schedules and pending broadcasts.</p>
         </div>
-        <div class="access-grid">
-          <div class="access-card">
-            <h3>Admins</h3>
-            <p class="hint">Base admins cannot be removed.</p>
-            <ul id="base-admin-list" class="simple-list"></ul>
-            <ul id="extra-admin-list" class="simple-list"></ul>
-            <form id="admin-form" class="stack-form">
-              <label>
-                Telegram @username
+        <div id="feed-list" class="feed-list" aria-live="polite"></div>
+      </section>
+
+      <!-- ============== PEOPLE ============== -->
+      <section class="block" aria-labelledby="people-heading">
+        <div class="block-head block-head-row">
+          <div>
+            <h2 id="people-heading">People</h2>
+            <p class="block-lede">Sorted by referrals. Tap a name to see drivers; tap ★ to celebrate.</p>
+          </div>
+          <input
+            type="search"
+            id="people-search"
+            class="people-search"
+            placeholder="Search…"
+            aria-label="Search people and drivers"
+          />
+        </div>
+        <div id="people-list" class="people-list"></div>
+        <button type="button" class="add-row" id="add-referrer-toggle">
+          <span class="add-row-icon" aria-hidden="true">+</span>
+          <span>Add referrer</span>
+        </button>
+        <form id="add-referrer-form" class="form inline-form" hidden>
+          <label class="field">
+            <span class="field-label">Referrer name</span>
+            <input type="text" id="ref-name" required placeholder="Jean Cadet" />
+          </label>
+          <label class="field field-inline">
+            <span class="field-label">Base CPM</span>
+            <input type="number" step="0.01" id="ref-cpm" required placeholder="63.00" />
+          </label>
+          <div class="form-row">
+            <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="add-referrer-cancel">Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <footer class="page-foot">
+        <p id="me-badge"></p>
+      </footer>
+    </main>
+
+    <!-- ============== SETTINGS DRAWER ============== -->
+    <aside class="drawer" id="settings-drawer" hidden aria-labelledby="drawer-heading">
+      <div class="drawer-scrim" data-drawer-close></div>
+      <div class="drawer-panel" role="dialog" aria-modal="true">
+        <header class="drawer-head">
+          <h2 id="drawer-heading">Settings</h2>
+          <button type="button" class="icon-btn" data-drawer-close aria-label="Close">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </header>
+        <div class="drawer-body">
+          <section class="drawer-section">
+            <h3 class="drawer-subhead">Export</h3>
+            <p class="drawer-hint">Download all referrers + drivers as a spreadsheet.</p>
+            <button type="button" class="btn btn-ghost btn-sm" id="export-btn">Download Excel</button>
+          </section>
+          <section class="drawer-section" id="access-section" hidden>
+            <h3 class="drawer-subhead">Admins</h3>
+            <p class="drawer-hint">Base admins are configured in the bot environment and can't be removed.</p>
+            <ul id="base-admin-list" class="entity-list" aria-label="Base admins"></ul>
+            <ul id="extra-admin-list" class="entity-list" aria-label="Additional admins"></ul>
+            <form id="admin-form" class="form inline-form">
+              <label class="field">
+                <span class="field-label">Add by username</span>
                 <input type="text" id="admin-username" placeholder="@username" required />
               </label>
-              <button type="submit" class="primary">Add admin</button>
+              <button type="submit" class="btn btn-primary btn-sm">Add admin</button>
             </form>
-          </div>
-          <div class="access-card">
-            <h3>Approved chats</h3>
-            <p class="hint">Chats that can manage the bot from group context.</p>
-            <ul id="chat-list" class="simple-list"></ul>
-            <form id="chat-form" class="stack-form">
-              <label>
-                Chat ID
-                <input type="number" id="chat-id" placeholder="-100..." required />
+          </section>
+          <section class="drawer-section" id="chats-section" hidden>
+            <h3 class="drawer-subhead">Approved chats</h3>
+            <p class="drawer-hint">Chats whose admins can manage the bot from group context.</p>
+            <ul id="chat-list" class="entity-list"></ul>
+            <form id="chat-form" class="form inline-form">
+              <label class="field">
+                <span class="field-label">Chat ID</span>
+                <input type="number" id="chat-id" placeholder="-100…" required />
               </label>
-              <label>
-                Label
-                <input type="text" id="chat-title" placeholder="Finance group" />
+              <label class="field">
+                <span class="field-label">Label</span>
+                <input type="text" id="chat-title" placeholder="Operations group" />
               </label>
-              <button type="submit" class="secondary">Add chat</button>
+              <button type="submit" class="btn btn-secondary btn-sm">Add chat</button>
             </form>
-          </div>
+          </section>
         </div>
-      </section>
-    </section>
-
-    <section class="tab-section" data-tab="insights">
-      <section class="summary-cards" id="summary-cards">
-        <!-- cards -->
-      </section>
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Leaderboard</h2>
-          <p>Celebrate momentum at a glance.</p>
-        </div>
-        <div id="leaderboard" class="leaderboard"></div>
-      </section>
-    </section>
-
-    <template id="referrer-card-template">
-      <div class="ref-card">
-        <div class="ref-card-header">
-          <div>
-            <h3></h3>
-            <p class="meta"></p>
-          </div>
-          <span class="badge"></span>
-        </div>
-        <ul class="referral-list"></ul>
       </div>
+    </aside>
+
+    <!-- ============== TEMPLATES ============== -->
+    <template id="people-row-template">
+      <article class="person" data-collapsed="true">
+        <div class="person-row">
+          <button type="button" class="person-expand" aria-expanded="false">
+            <div class="person-head">
+              <span class="person-leader" aria-hidden="true">★</span>
+              <span class="person-title"></span>
+              <span class="person-stats"></span>
+            </div>
+            <p class="person-drivers-line"></p>
+          </button>
+          <button type="button" class="person-spot" aria-label="Use in composer">
+            <span aria-hidden="true">✦</span>
+          </button>
+        </div>
+        <div class="person-detail" hidden>
+          <ul class="person-driver-list"></ul>
+          <details class="person-removed" hidden>
+            <summary></summary>
+            <ul class="person-removed-list"></ul>
+          </details>
+          <div class="person-actions">
+            <div class="person-cpm-edit">
+              <label class="field field-inline">
+                <span class="field-label">Base CPM</span>
+                <input type="number" step="0.01" data-action="cpm-input" />
+              </label>
+              <button type="button" class="btn btn-ghost btn-xs" data-action="cpm-save">Save</button>
+            </div>
+            <button type="button" class="btn btn-ghost btn-xs" data-action="add-drivers">+ Add drivers</button>
+            <button type="button" class="btn btn-ghost btn-xs btn-danger-ghost" data-action="remove-referrer">Remove referrer</button>
+          </div>
+          <form class="form inline-form" data-form="add-drivers" hidden>
+            <label class="field">
+              <span class="field-label">Driver names (comma-separated)</span>
+              <textarea rows="2" required></textarea>
+            </label>
+            <div class="form-row">
+              <button type="submit" class="btn btn-primary btn-xs">Save drivers</button>
+              <button type="button" class="btn btn-ghost btn-xs" data-action="cancel-add">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </article>
     </template>
 
-    <div class="modal-layer" id="modal-layer">
-      <div class="modal" data-modal="add-referrer">
-        <header>
-          <h3>New referrer</h3>
-          <button type="button" class="close-modal" aria-label="Close">×</button>
-        </header>
-        <form id="ref-form" class="modal-form">
-          <label>
-            Name
-            <input type="text" id="ref-name" required />
-          </label>
-          <label>
-            Base CPM
-            <input type="number" step="0.01" id="ref-cpm" required />
-          </label>
-          <button type="submit" class="primary">Create referrer</button>
-        </form>
-      </div>
-      <div class="modal" data-modal="add-referrals">
-        <header>
-          <h3>Add drivers</h3>
-          <button type="button" class="close-modal" aria-label="Close">×</button>
-        </header>
-        <form id="add-form" class="modal-form">
-          <label>
-            Referrer
-            <select id="add-referrer" required></select>
-          </label>
-          <label>
-            Driver names
-            <textarea id="add-names" rows="4" placeholder="Jane Cooper&#10;Diego Scott" required></textarea>
-          </label>
-          <button type="submit" class="primary">Save drivers</button>
-        </form>
-      </div>
-      <div class="modal" data-modal="remove-referrals">
-        <header>
-          <h3>Clean referrals</h3>
-          <button type="button" class="close-modal" aria-label="Close">×</button>
-        </header>
-        <form id="remove-form" class="modal-form">
-          <label>
-            Referrer
-            <select id="remove-referrer" required></select>
-          </label>
-          <label>
-            Drivers to remove
-            <select id="remove-select" multiple size="6" required></select>
-            <small class="hint">Select one or more drivers.</small>
-          </label>
-          <label>
-            Removal date (optional)
-            <input type="date" id="remove-date" />
-          </label>
-          <label>
-            Reason (optional)
-            <input type="text" id="remove-reason" placeholder="Duplicate entry, typo, etc." />
-          </label>
-          <button type="submit" class="danger">Remove selected</button>
-        </form>
-      </div>
-      <div class="modal" data-modal="cpm-editor">
-        <header>
-          <h3>Adjust base CPM</h3>
-          <button type="button" class="close-modal" aria-label="Close">×</button>
-        </header>
-        <form id="cpm-form" class="modal-form">
-          <label>
-            Referrer
-            <select id="cpm-referrer" required></select>
-          </label>
-          <label>
-            Base CPM
-            <input type="number" step="0.01" id="cpm-value" required />
-          </label>
-          <button type="submit" class="secondary">Update CPM</button>
-        </form>
-      </div>
-      <div class="modal" data-modal="announce">
-        <header>
-          <h3>Broadcast spotlight</h3>
-          <button type="button" class="close-modal" aria-label="Close">×</button>
-        </header>
-        <form id="announce-form" class="modal-form">
-          <label>
-            Referrer
-            <select id="announce-referrer" required></select>
-          </label>
-          <label class="inline">
-            <input type="checkbox" id="announce-ignore-inactive" checked />
-            Skip chats tagged <strong>INACTIVE</strong>
-          </label>
-          <small class="hint">Uncheck to reach inactive groups.</small>
-          <button type="submit" class="primary">Send announcement</button>
-        </form>
-      </div>
-      <div class="modal" data-modal="reminder">
-        <header>
-          <h3>Create reminder</h3>
-          <button type="button" class="close-modal" aria-label="Close">×</button>
-        </header>
-        <form id="reminder-form" class="modal-form">
-          <label>
-            Reminder text
-            <div class="format-bar">
-              <button type="button" id="rem-bold" title="Bold">B</button>
-              <button type="button" id="rem-italic" title="Italic"><span class="italic">I</span></button>
-              <button type="button" id="rem-photo-btn" title="Attach photo">Photo</button>
-              <input type="file" id="rem-photo" accept="image/*" hidden />
-              <button type="button" id="rem-photo-remove" class="ghost" hidden>Remove photo</button>
-            </div>
-            <small class="hint" id="rem-photo-status">No photo selected.</small>
-            <textarea id="rem-text" rows="2" required></textarea>
-          </label>
-          <div class="segmented">
-            <label><input type="radio" name="rem-mode" value="once" checked /> One time</label>
-            <label><input type="radio" name="rem-mode" value="schedule" /> Schedule</label>
-          </div>
-          <div data-rem-mode="once">
-            <label>
-              Send on
-              <input type="datetime-local" id="rem-once" />
-            </label>
-            <label class="inline">
-              <input type="checkbox" id="rem-send-now" /> Send right now
-            </label>
-          </div>
-          <div data-rem-mode="schedule" style="display:none;">
-            <label>Select day(s)</label>
-            <div class="weekday-grid compact" id="rem-days">
-              <label><input type="checkbox" value="0" /> Mon</label>
-              <label><input type="checkbox" value="1" /> Tue</label>
-              <label><input type="checkbox" value="2" /> Wed</label>
-              <label><input type="checkbox" value="3" /> Thu</label>
-              <label><input type="checkbox" value="4" /> Fri</label>
-              <label><input type="checkbox" value="5" /> Sat</label>
-              <label><input type="checkbox" value="6" /> Sun</label>
-            </div>
-            <label>
-              Time of day
-              <input type="time" id="rem-schedule-time" />
-            </label>
-          </div>
-          <label class="inline">
-            <input type="checkbox" id="rem-ignore-inactive" checked />
-            Skip chats tagged <strong>INACTIVE</strong>
-          </label>
-          <small class="hint">Uncheck to include inactive/archived groups.</small>
-          <div class="schedule-actions">
-            <button type="button" id="reminder-preview" class="ghost">Preview in this chat</button>
-            <button type="submit" class="primary">Create reminder</button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <template id="feed-item-template">
+      <article class="feed-item">
+        <div class="feed-item-mark" aria-hidden="true"></div>
+        <div class="feed-item-body">
+          <p class="feed-item-kind"></p>
+          <p class="feed-item-title"></p>
+          <p class="feed-item-when"></p>
+          <div class="feed-item-tags"></div>
+        </div>
+        <div class="feed-item-actions"></div>
+      </article>
+    </template>
 
-    <script src="/static/app.js" type="module"></script>
+    <script src="app.js"></script>
   </body>
 </html>
