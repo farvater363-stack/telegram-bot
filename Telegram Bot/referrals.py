@@ -713,6 +713,13 @@ async def update_announcement_schedule(days: List[int], time_of_day: str) -> dic
     return await get_announcement_schedule_state()
 
 
+async def clear_announcement_schedule() -> dict:
+    """Remove the persisted schedule so no automatic announcement fires."""
+    await db.clear_announcement_schedule()
+    await _refresh_announcement_job()
+    return await get_announcement_schedule_state()
+
+
 def _format_weekday_list(days: List[int]) -> str:
     if not days:
         return "No days configured"

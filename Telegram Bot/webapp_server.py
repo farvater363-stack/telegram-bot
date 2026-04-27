@@ -28,6 +28,7 @@ from permissions import has_admin_access
 from referrals import (
     build_referral_announcement,
     build_referral_workbook,
+    clear_announcement_schedule,
     get_announcement_schedule_state,
     update_announcement_schedule,
 )
@@ -438,6 +439,11 @@ async def handle_update_schedule(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "schedule": schedule})
 
 
+async def handle_delete_schedule(_: web.Request) -> web.Response:
+    schedule = await clear_announcement_schedule()
+    return web.json_response({"ok": True, "schedule": schedule})
+
+
 async def handle_get_reminders(_: web.Request) -> web.Response:
     payload = await _build_reminders_payload()
     return web.json_response(payload)
@@ -653,6 +659,7 @@ class WebAppServer:
         app.router.add_post("/api/uploads/reminder_media", handle_upload_reminder_media)
         app.router.add_get("/api/announcements/schedule", handle_get_schedule)
         app.router.add_post("/api/announcements/schedule", handle_update_schedule)
+        app.router.add_delete("/api/announcements/schedule", handle_delete_schedule)
         app.router.add_get("/api/reminders", handle_get_reminders)
         app.router.add_post("/api/reminders", handle_create_reminder)
         app.router.add_patch("/api/reminders/{reminder_id}", handle_toggle_reminder)

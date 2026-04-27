@@ -453,6 +453,9 @@ class Database:
             """,
             (payload, time_of_day, _utcnow()),
         )
+
+    async def clear_announcement_schedule(self) -> None:
+        await self.execute("DELETE FROM announcement_settings WHERE id=1")
     # Removal helpers ------------------------------------------------------
     async def remove_referrer(self, referrer_id: int, removed_by: int) -> int:
         now = _utcnow()
