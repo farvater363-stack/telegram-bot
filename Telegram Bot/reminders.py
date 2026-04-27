@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, time, timedelta
+from pathlib import Path
 from typing import List, Optional
 
 from aiogram import Bot, F, Router
@@ -308,10 +309,23 @@ async def reminders_delete(callback: CallbackQuery) -> None:
     if not await _ensure_admin(callback):
         return
     reminder_id = int(callback.data.split(":")[2])
+    reminder = await db.get_reminder(reminder_id)
     await db.delete_reminder(reminder_id)
     await unschedule_reminder(reminder_id)
+    if reminder:
+        cleanup_reminder_media(reminder.get("media_path"))
     await callback.answer("Reminder deleted.")
     await _send_reminders_list(callback)
+
+
+def cleanup_reminder_media(media_path: Optional[str]) -> None:
+    """Best-effort removal of an uploaded reminder asset after the reminder is deleted."""
+    if not media_path:
+        return
+    try:
+        Path(media_path).unlink(missing_ok=True)
+    except OSError as exc:
+        logger.warning("Failed to remove reminder media %s: %s", media_path, exc)
 
 
 async def restore_reminders() -> None:
@@ -351,13 +365,17 @@ async def schedule_reminder(reminder: dict) -> None:
         trigger = CronTrigger(hour=hours, minute=minutes, timezone=settings.timezone)
         _scheduler.add_job(_fire_reminder, trigger=trigger, id=job_id, args=(reminder["id"],), replace_existing=True)
     elif r_type == "weekly":
-        day = reminder.get("weekday", 0)
-        trigger = CronTrigger(day_of_week=str(day), hour=hours, minute=minutes, timezone=settings.timezone)
+        day = reminder.get("weekday")
+        if day is None:
+            return
+        trigger = CronTrigger(day_of_week=str(int(day)), hour=hours, minute=minutes, timezone=settings.timezone)
         _scheduler.add_job(_fire_reminder, trigger=trigger, id=job_id, args=(reminder["id"],), replace_existing=True)
     elif r_type == "biweekly":
-        day = reminder.get("weekday", 0)
-        start = _next_occurrence(day, time(hour=hours, minute=minutes))
-        trigger = IntervalTrigger(weeks=reminder.get("every_n_weeks", 2), start_date=start)
+        day = reminder.get("weekday")
+        if day is None:
+            return
+        start = _next_occurrence(int(day), time(hour=hours, minute=minutes))
+        trigger = IntervalTrigger(weeks=reminder.get("every_n_weeks") or 2, start_date=start)
         _scheduler.add_job(_fire_reminder, trigger=trigger, id=job_id, args=(reminder["id"],), replace_existing=True)
     elif r_type == "twice":
         weekdays = reminder.get("weekdays") or ""

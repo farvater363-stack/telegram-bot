@@ -35,9 +35,11 @@ def _parse_admin_ids(value: str | None) -> List[int]:
 def _parse_announcement_days(raw: str | None) -> List[int]:
     """
     Accepts comma separated weekday names (Mon, Monday, 0, etc.) and returns 0-6 ints.
+    Empty/unset means no automatic schedule — admins must configure one
+    explicitly via the WebApp or /referrals → schedule flow.
     """
     if not raw:
-        raw = "Monday,Thursday"
+        return []
     mapping = {
         "0": 0,
         "1": 1,

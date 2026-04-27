@@ -5,12 +5,17 @@ import hmac
 import json
 import logging
 import re
+import time as time_module
 import urllib.parse
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 from uuid import uuid4
+
+# Telegram WebApp init data is signed but does not expire on its own; reject
+# anything older than this to limit replay attacks if a payload is leaked.
+_INIT_DATA_MAX_AGE_SECONDS = 24 * 60 * 60
 
 from aiohttp import web
 from aiogram import Bot
@@ -27,6 +32,7 @@ from referrals import (
     update_announcement_schedule,
 )
 from reminders import (
+    cleanup_reminder_media,
     format_reminder_schedule,
     schedule_reminder,
     serialize_reminder,
@@ -118,7 +124,10 @@ def _resolve_media_token(token: str | None) -> str | None:
 def _verify_init_data(init_data: str) -> Dict[str, Any] | None:
     if not init_data:
         return None
-    parsed = urllib.parse.parse_qsl(init_data, strict_parsing=True)
+    try:
+        parsed = urllib.parse.parse_qsl(init_data, strict_parsing=True)
+    except ValueError:
+        return None
     data = dict(parsed)
     hash_value = data.pop("hash", None)
     if not hash_value:
@@ -127,6 +136,15 @@ def _verify_init_data(init_data: str) -> Dict[str, Any] | None:
     secret_key = hmac.new(b"WebAppData", settings.bot_token.encode(), hashlib.sha256).digest()
     calculated = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(calculated, hash_value):
+        return None
+    auth_date_raw = data.get("auth_date")
+    if auth_date_raw is None:
+        return None
+    try:
+        auth_date = int(auth_date_raw)
+    except ValueError:
+        return None
+    if abs(time_module.time() - auth_date) > _INIT_DATA_MAX_AGE_SECONDS:
         return None
     if "user" in data:
         try:
@@ -351,7 +369,10 @@ async def handle_preview_announcement(request: web.Request) -> web.Response:
     time_of_day = data.get("time_of_day")
     if not isinstance(days, list) or not time_of_day:
         return web.json_response({"ok": False, "error": "Invalid payload"}, status=400)
-    human_days = ", ".join(_weekday_name(int(day)) for day in days)
+    try:
+        human_days = ", ".join(_weekday_name(int(day)) for day in days)
+    except (TypeError, ValueError):
+        return web.json_response({"ok": False, "error": "Invalid days"}, status=400)
     text = (
         "Auto announcement preview\n"
         f"Days: {human_days or 'not set'}\n"
@@ -499,8 +520,11 @@ async def handle_toggle_reminder(request: web.Request) -> web.Response:
 
 async def handle_delete_reminder(request: web.Request) -> web.Response:
     reminder_id = int(request.match_info["reminder_id"])
+    reminder = await db.get_reminder(reminder_id)
     await db.delete_reminder(reminder_id)
     await unschedule_reminder(reminder_id)
+    if reminder:
+        cleanup_reminder_media(reminder.get("media_path"))
     payload = await _build_reminders_payload()
     return web.json_response(payload)
 
@@ -517,7 +541,10 @@ async def handle_preview_reminder(request: web.Request) -> web.Response:
     media_path = _resolve_media_token(data.get("media_path"))
     if data.get("mode") == "schedule":
         days = data.get("days") or []
-        readable = ", ".join(_weekday_name(int(day)) for day in days)
+        try:
+            readable = ", ".join(_weekday_name(int(day)) for day in days)
+        except (TypeError, ValueError):
+            return web.json_response({"ok": False, "error": "Invalid days"}, status=400)
         lines.append(f"Days: {readable or 'not set'} at {data.get('time_of_day')}")
     bot: Bot = request.app["bot"]
     if media_path:
